@@ -1,7 +1,7 @@
 [project]
-name = "first-agent"
+name = "llm-agents-fundamentals"
 version = "0.1.0"
-description = "ReAct agent notebook — Reasoning + Action loop"
+description = "Módulo 1 — Fundamentos práticos de agentes com LLMs"
 requires-python = "==3.11.*"
 dependencies = [
     "jupyter>=1.0",

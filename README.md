@@ -1,8 +1,8 @@
-# First Agent — Módulo 1 (Construção de Agentes com IA)
+# Módulo 1 — Fundamentos práticos de agentes com LLMs
 
-Repositório com os notebooks da **primeira etapa do curso** (Módulo 1): introdução a agentes LLM no padrão **ReAct** (Reasoning + Acting).
+Repositório com **todas as atividades do Módulo 1** do curso: introdução a agentes LLM, do padrão **ReAct** (Reasoning + Acting) construído na mão até um agente de pesquisa com **LangGraph** + busca na web.
 
-Cada notebook alterna entre `Thought/Pensamento → Action/Ação → Observation/Observação → Answer/Resposta` até resolver a pergunta. Suporta dois providers de LLM, intercambiáveis via variável de ambiente:
+Os notebooks ReAct alternam entre `Thought/Pensamento → Action/Ação → Observation/Observação → Answer/Resposta` até resolver a pergunta. Suportam dois providers de LLM, intercambiáveis via variável de ambiente:
 
 - **Google Gemini** (free tier no [AI Studio](https://aistudio.google.com/app/apikey)) — default
 - **OpenAI** (`gpt-4o-mini`)
@@ -10,7 +10,7 @@ Cada notebook alterna entre `Thought/Pensamento → Action/Ação → Observatio
 ## Estrutura
 
 ```
-first-agent/
+llm-agents-fundamentals/
 ├── pyproject.toml                       # uv + Python 3.11 + deps
 ├── .env.example                         # template das chaves
 ├── .gitignore
@@ -67,13 +67,13 @@ source $HOME/.local/bin/env
 ## Setup
 
 ```bash
-git clone <este-repo>
-cd first-agent
+git clone https://github.com/marcoahansen/llm-agents-fundamentals.git
+cd llm-agents-fundamentals
 
 uv python install 3.11
 uv sync                            # cria .venv e instala deps
 cp .env.example .env               # edite e preencha sua chave
-uv run python -m ipykernel install --user --name first-agent --display-name "Python (first-agent)"
+uv run python -m ipykernel install --user --name llm-agents-fundamentals --display-name "Python (llm-agents-fundamentals)"
 ```
 
 No `.env`, preencha **apenas** o provider que você vai usar:
@@ -91,7 +91,7 @@ TAVILY_API_KEY=...                 # obrigatório para o notebook M1A4
 uv run jupyter notebook notebooks/
 ```
 
-No Jupyter, abra o notebook desejado, selecione o kernel **Python (first-agent)** e execute as células em ordem.
+No Jupyter, abra o notebook desejado, selecione o kernel **Python (llm-agents-fundamentals)** e execute as células em ordem.
 
 ## Modelos atuais
 
