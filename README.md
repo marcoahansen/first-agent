@@ -17,7 +17,8 @@ first-agent/
 ├── README.md
 └── notebooks/
     ├── react_agent.ipynb                # base — tools calculate + preco_prato
-    └── m1a3_react_agent.ipynb           # atividade M1A3 — + calcular_idade + converter_moeda
+    ├── m1a3_react_agent.ipynb           # atividade M1A3 — + calcular_idade + converter_moeda
+    └── m1a4_research_agent.ipynb        # atividade M1A4 — LangGraph + Tavily (agente de pesquisa)
 ```
 
 ## Notebooks
@@ -42,6 +43,15 @@ Estende o notebook base com:
   - "Quantos anos tem alguém que nasceu em 1995?"
   - "Quanto é 10 dólares em reais, considerando que 1 USD = 5,00 BRL?"
   - Pergunta composta (idade + conversão).
+
+### `notebooks/m1a4_research_agent.ipynb` — atividade M1A4
+Agente de pesquisa com **LangGraph** + **Tavily** (busca na web):
+
+- Grafo com 2 nós (`llm` ↔ `action`) e aresta condicional baseada em `tool_calls`.
+- SDK Tavily atual (`langchain-tavily`) — substitui o `TavilySearchResults` do `langchain-community` (deprecated).
+- Dual provider: `ChatGoogleGenerativeAI` (Gemini) ou `ChatOpenAI` — ambos com tool calling nativo.
+- Requer `TAVILY_API_KEY` no `.env` (free tier em https://tavily.com).
+- Testes: clima do Rio, capital do Canadá, Copa do Mundo de 2014, pergunta composta (Copa 2022 + PIB).
 
 ## Pré-requisitos
 
@@ -72,6 +82,7 @@ No `.env`, preencha **apenas** o provider que você vai usar:
 LLM_PROVIDER=gemini                # ou "openai"
 GOOGLE_API_KEY=...                 # se gemini
 OPENAI_API_KEY=...                 # se openai
+TAVILY_API_KEY=...                 # obrigatório para o notebook M1A4
 ```
 
 ## Rodar os notebooks
