@@ -18,7 +18,8 @@ llm-agents-fundamentals/
 └── notebooks/
     ├── react_agent.ipynb                # base — tools calculate + preco_prato
     ├── m1a3_react_agent.ipynb           # atividade M1A3 — + calcular_idade + converter_moeda
-    └── m1a4_research_agent.ipynb        # atividade M1A4 — LangGraph + Tavily (agente de pesquisa)
+    ├── m1a4_research_agent.ipynb        # atividade M1A4 — LangGraph + Tavily (agente de pesquisa)
+    └── m1a7_travel_planner.ipynb        # trabalho final M1A7 — planejador de viagens com tool-calling
 ```
 
 ## Notebooks
@@ -53,6 +54,16 @@ Agente de pesquisa com **LangGraph** + **Tavily** (busca na web):
 - Requer `TAVILY_API_KEY` no `.env` (free tier em https://tavily.com).
 - Testes: clima do Rio, capital do Canadá, Copa do Mundo de 2014, pergunta composta (Copa 2022 + PIB).
 
+### `notebooks/m1a7_travel_planner.ipynb` — trabalho final (M1A7)
+Planejador de viagens com **LangGraph** + **tool-calling** + **human-in-the-loop**:
+
+- 4 ferramentas que o LLM decide chamar (`model.bind_tools`): `calcular_orcamento` (Python puro), `ver_temperatura`, `sugerir_restaurantes`, `preco_passagens` (busca Tavily). `known_actions` = dicionário de ferramentas.
+- Grafo `query → search → agent ⇄ tools → feedback`: o nó `agent` decide quando chamar ferramentas (vai para `tools` e volta); ao finalizar, mostra o plano no `feedback`.
+- `feedback` lê a resposta do usuário (`input()`): "ok" finaliza, "sair" encerra, qualquer outra coisa volta ao `agent` em modo revisão (`REVISION_PROMPT`), até 3 revisões.
+- `InMemorySaver` + `thread_id` mantêm o estado entre as rodadas de feedback.
+- Dual provider (Gemini/OpenAI) e Tavily, iguais ao M1A4.
+- Teste multi-etapa: "Monte um roteiro de 5 dias para Paris, incluindo orçamento total e sugestões de restaurantes."
+
 ## Pré-requisitos
 
 - [uv](https://docs.astral.sh/uv/) (gerenciador de ambiente/Python)
@@ -82,7 +93,7 @@ No `.env`, preencha **apenas** o provider que você vai usar:
 LLM_PROVIDER=gemini                # ou "openai"
 GOOGLE_API_KEY=...                 # se gemini
 OPENAI_API_KEY=...                 # se openai
-TAVILY_API_KEY=...                 # obrigatório para o notebook M1A4
+TAVILY_API_KEY=...                 # obrigatório para os notebooks M1A4 e M1A7
 ```
 
 ## Rodar os notebooks
