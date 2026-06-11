@@ -15,11 +15,16 @@ llm-agents-fundamentals/
 ├── .env.example                         # template das chaves
 ├── .gitignore
 ├── README.md
-└── notebooks/
-    ├── react_agent.ipynb                # base — tools calculate + preco_prato
-    ├── m1a3_react_agent.ipynb           # atividade M1A3 — + calcular_idade + converter_moeda
-    ├── m1a4_research_agent.ipynb        # atividade M1A4 — LangGraph + Tavily (agente de pesquisa)
-    └── m1a7_travel_planner.ipynb        # trabalho final M1A7 — planejador de viagens com tool-calling
+├── notebooks/
+│   ├── react_agent.ipynb                # base — tools calculate + preco_prato
+│   ├── m1a3_react_agent.ipynb           # atividade M1A3 — + calcular_idade + converter_moeda
+│   ├── m1a4_research_agent.ipynb        # atividade M1A4 — LangGraph + Tavily (agente de pesquisa)
+│   ├── m1a7_travel_planner.ipynb        # trabalho final M1A7 — planejador de viagens com tool-calling
+│   └── mf_travel_agent_plus.ipynb       # desafio final — M1A7 + n8n (webhook) + MCP (FastMCP)
+└── desafio-final/                       # desafio final da trilha (ver desafio-final/README.md)
+    ├── docker-compose.yml               # n8n local (Etapa 1)
+    ├── n8n/                             # workflows "Weather & Packing Checklist"
+    └── mcp_servers/poi_server.py        # servidor MCP "POI Finder" (Etapa 2)
 ```
 
 ## Notebooks
@@ -63,6 +68,14 @@ Planejador de viagens com **LangGraph** + **tool-calling** + **human-in-the-loop
 - `InMemorySaver` + `thread_id` mantêm o estado entre as rodadas de feedback.
 - Dual provider (Gemini/OpenAI) e Tavily, iguais ao M1A4.
 - Teste multi-etapa: "Monte um roteiro de 5 dias para Paris, incluindo orçamento total e sugestões de restaurantes."
+
+### `notebooks/mf_travel_agent_plus.ipynb` — desafio final da trilha
+Estende o M1A7 com **duas ferramentas externas**, integradas ao mesmo grafo LangGraph (nós agora `async`):
+
+- **`clima_e_checklist`** — webhook de uma automação **n8n** que consulta o Open-Meteo e devolve previsão do tempo + checklist de bagagem por destino.
+- **`poi_find`** — tool de um **servidor MCP** (FastMCP) que lista pontos de interesse reais (Overpass/OpenStreetMap ou OpenTripMap) por coordenada/categoria/raio.
+
+Setup completo (subir o n8n, importar o workflow, rodar o servidor MCP) em **[`desafio-final/README.md`](desafio-final/README.md)**.
 
 ## Pré-requisitos
 

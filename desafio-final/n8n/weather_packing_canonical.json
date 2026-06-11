@@ -1,0 +1,185 @@
+{
+  "name": "Weather & Packing Checklist (canonico - nos nativos)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "weather-packing-canonical",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wh-canon-0001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "weather-packing-canonical"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body.itinerary",
+        "options": {}
+      },
+      "id": "split-canon-001",
+      "name": "Split Out",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.open-meteo.com/v1/forecast",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "latitude",
+              "value": "={{ $json.lat }}"
+            },
+            {
+              "name": "longitude",
+              "value": "={{ $json.lon }}"
+            },
+            {
+              "name": "daily",
+              "value": "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weather_code,uv_index_max"
+            },
+            {
+              "name": "timezone",
+              "value": "auto"
+            },
+            {
+              "name": "start_date",
+              "value": "={{ $json.date }}"
+            },
+            {
+              "name": "end_date",
+              "value": "={{ $json.date }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-canon-001",
+      "name": "Open-Meteo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst WMO = { 0:'Ceu limpo',1:'Predom. limpo',2:'Parc. nublado',3:'Nublado',45:'Nevoa',48:'Nevoa c/ geada',51:'Garoa fraca',53:'Garoa',55:'Garoa forte',61:'Chuva fraca',63:'Chuva',65:'Chuva forte',66:'Chuva congelante',67:'Chuva congelante forte',71:'Neve fraca',73:'Neve',75:'Neve forte',77:'Graos de neve',80:'Aguaceiros fracos',81:'Aguaceiros',82:'Aguaceiros fortes',85:'Aguaceiros de neve',86:'Aguaceiros de neve fortes',95:'Trovoada',96:'Trovoada c/ granizo',99:'Trovoada forte c/ granizo' };\n\nfunction buildChecklist(f){\n  const out = [];\n  const { temp_max:tmax, temp_min:tmin, precip_prob:prob, precip_mm:mm, uv_index:uv, weather_code:code } = f;\n  if (tmin != null && tmin < 5) out.push('casaco pesado + touca e luvas');\n  else if (tmin != null && tmin < 10) out.push('casaco quente / blusa de frio');\n  else if (tmin != null && tmin < 15) out.push('casaco leve para a noite');\n  if (tmax != null && tmax >= 30) out.push('roupas leves e respiraveis','bone ou chapeu','garrafa de agua (hidratacao)');\n  else if (tmax != null && tmax >= 25) out.push('roupas leves');\n  if ((prob != null && prob >= 50) || (mm != null && mm >= 1)) out.push('guarda-chuva ou capa de chuva');\n  else if (prob != null && prob >= 30) out.push('guarda-chuva dobravel (pode chover)');\n  if (uv != null && uv >= 6) out.push('protetor solar FPS alto','oculos de sol');\n  else if (uv != null && uv >= 3) out.push('protetor solar');\n  if ([71,73,75,77,85,86].includes(code)) out.push('roupa de neve / calcado impermeavel');\n  if ([95,96,99].includes(code)) out.push('capa de chuva (risco de trovoada)');\n  if (out.length === 0) out.push('roupas confortaveis para clima ameno');\n  return out;\n}\n\nconst stop = $('Split Out').item.json;\nconst d = $json.daily || {};\nconst f = {\n  temp_max: (d.temperature_2m_max||[])[0] ?? null,\n  temp_min: (d.temperature_2m_min||[])[0] ?? null,\n  precip_mm: (d.precipitation_sum||[])[0] ?? null,\n  precip_prob: (d.precipitation_probability_max||[])[0] ?? null,\n  uv_index: (d.uv_index_max||[])[0] ?? null,\n  weather_code: (d.weather_code||[])[0] ?? null,\n};\nconst weather = WMO[f.weather_code] || ('codigo ' + f.weather_code);\nreturn { json: {\n  city: stop.city || stop.name || '', date: (d.time||[])[0] ?? stop.date,\n  lat: stop.lat, lon: stop.lon,\n  temp_min_c: f.temp_min, temp_max_c: f.temp_max,\n  precip_mm: f.precip_mm, precip_prob_pct: f.precip_prob,\n  uv_index_max: f.uv_index, weather_code: f.weather_code, weather,\n  source: 'open-meteo', checklist: buildChecklist(f)\n} };\n"
+      },
+      "id": "code-canon-001",
+      "name": "Montar Checklist",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "itinerary_result",
+        "options": {}
+      },
+      "id": "agg-canon-001",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "resp-canon-001",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Open-Meteo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open-Meteo": {
+      "main": [
+        [
+          {
+            "node": "Montar Checklist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Checklist": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

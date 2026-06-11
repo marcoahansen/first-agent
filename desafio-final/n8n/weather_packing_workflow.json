@@ -1,0 +1,79 @@
+{
+  "name": "Weather & Packing Checklist (robusto)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "weather-packing",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wh-robusto-0001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "weather-packing-robusto"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst helpers = this.helpers;\nconst WMO = { 0:'Ceu limpo',1:'Predom. limpo',2:'Parc. nublado',3:'Nublado',45:'Nevoa',48:'Nevoa c/ geada',51:'Garoa fraca',53:'Garoa',55:'Garoa forte',61:'Chuva fraca',63:'Chuva',65:'Chuva forte',66:'Chuva congelante',67:'Chuva congelante forte',71:'Neve fraca',73:'Neve',75:'Neve forte',77:'Graos de neve',80:'Aguaceiros fracos',81:'Aguaceiros',82:'Aguaceiros fortes',85:'Aguaceiros de neve',86:'Aguaceiros de neve fortes',95:'Trovoada',96:'Trovoada c/ granizo',99:'Trovoada forte c/ granizo' };\n\nfunction buildChecklist(f){\n  const out = [];\n  const { temp_max:tmax, temp_min:tmin, precip_prob:prob, precip_mm:mm, uv_index:uv, weather_code:code } = f;\n  if (tmin != null && tmin < 5) out.push('casaco pesado + touca e luvas');\n  else if (tmin != null && tmin < 10) out.push('casaco quente / blusa de frio');\n  else if (tmin != null && tmin < 15) out.push('casaco leve para a noite');\n  if (tmax != null && tmax >= 30) out.push('roupas leves e respiraveis','bone ou chapeu','garrafa de agua (hidratacao)');\n  else if (tmax != null && tmax >= 25) out.push('roupas leves');\n  if ((prob != null && prob >= 50) || (mm != null && mm >= 1)) out.push('guarda-chuva ou capa de chuva');\n  else if (prob != null && prob >= 30) out.push('guarda-chuva dobravel (pode chover)');\n  if (uv != null && uv >= 6) out.push('protetor solar FPS alto','oculos de sol');\n  else if (uv != null && uv >= 3) out.push('protetor solar');\n  if ([71,73,75,77,85,86].includes(code)) out.push('roupa de neve / calcado impermeavel');\n  if ([95,96,99].includes(code)) out.push('capa de chuva (risco de trovoada)');\n  if (out.length === 0) out.push('roupas confortaveis para clima ameno');\n  return out;\n}\n\nasync function geocode(city){\n  try {\n    const url = 'https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(city) + '&count=1&language=pt&format=json';\n    const data = await helpers.httpRequest({ url, json: true });\n    const r = (data.results || [])[0];\n    return r ? { lat: r.latitude, lon: r.longitude, resolved: r.name + (r.country ? ', ' + r.country : '') } : null;\n  } catch (e){ return null; }\n}\n\nconst items = $input.all();\nconst root = (items[0] && items[0].json && (items[0].json.body || items[0].json)) || {};\nconst itinerary = Array.isArray(root.itinerary) ? root.itinerary : [];\n\nconst itinerary_weather = [];\nconst checklists = [];\n\nfor (const stop of itinerary){\n  const city = stop.city || stop.name || stop.destino || '';\n  const date = stop.date || stop.data || null;\n  let lat = stop.lat != null ? Number(stop.lat) : null;\n  let lon = stop.lon != null ? Number(stop.lon) : (stop.lng != null ? Number(stop.lng) : null);\n  let resolved = city;\n\n  if ((lat == null || lon == null) && city){\n    const g = await geocode(city);\n    if (g){ lat = g.lat; lon = g.lon; resolved = g.resolved; }\n  }\n  if (lat == null || lon == null){\n    itinerary_weather.push({ city, date, error: 'sem coordenadas e geocoding falhou' });\n    checklists.push({ city, date, items: ['nao foi possivel obter previsao; leve roupas versateis'] });\n    continue;\n  }\n\n  const qs = new URLSearchParams({\n    latitude: String(lat), longitude: String(lon),\n    daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weather_code,uv_index_max',\n    timezone: 'auto'\n  });\n  if (date){ qs.set('start_date', date); qs.set('end_date', date); } else { qs.set('forecast_days','1'); }\n\n  try {\n    const data = await helpers.httpRequest({ url: 'https://api.open-meteo.com/v1/forecast?' + qs.toString(), json: true });\n    const d = data.daily || {};\n    const f = {\n      temp_max: (d.temperature_2m_max||[])[0] ?? null,\n      temp_min: (d.temperature_2m_min||[])[0] ?? null,\n      precip_mm: (d.precipitation_sum||[])[0] ?? null,\n      precip_prob: (d.precipitation_probability_max||[])[0] ?? null,\n      uv_index: (d.uv_index_max||[])[0] ?? null,\n      weather_code: (d.weather_code||[])[0] ?? null,\n    };\n    const fdate = (d.time||[])[0] ?? date;\n    const weather = WMO[f.weather_code] || ('codigo ' + f.weather_code);\n    itinerary_weather.push({\n      city: resolved, date: fdate, lat, lon,\n      temp_min_c: f.temp_min, temp_max_c: f.temp_max,\n      precip_mm: f.precip_mm, precip_prob_pct: f.precip_prob,\n      uv_index_max: f.uv_index, weather_code: f.weather_code, weather,\n      source: 'open-meteo', confidence: date ? 'forecast' : 'hoje'\n    });\n    checklists.push({ city: resolved, date: fdate, items: buildChecklist(f) });\n  } catch (e){\n    itinerary_weather.push({ city: resolved, date, error: 'open-meteo falhou: ' + e.message });\n    checklists.push({ city: resolved, date, items: ['previsao indisponivel; leve roupas versateis'] });\n  }\n}\n\nreturn [{ json: { ok: true, generated_with: 'n8n + open-meteo', itinerary_weather, checklists } }];\n"
+      },
+      "id": "code-robusto-001",
+      "name": "Clima + Checklist",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "id": "resp-robusto-001",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        720,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Clima + Checklist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clima + Checklist": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

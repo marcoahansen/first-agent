@@ -1,0 +1,29 @@
+# n8n local para a Etapa 1 (webhook "Weather & Packing Checklist").
+#
+#   docker compose up -d        # (ou: podman compose up -d)
+#   abre  http://localhost:5678 # cria a conta local (fica offline, sem nuvem)
+#   docker compose logs -f n8n  # acompanhar
+#   docker compose down         # parar (dados persistem no volume n8n_data)
+#
+# WSL2: se usar podman rootless e cair em erro de "/run/user/1000", rode antes:
+#   systemctl --user start podman.socket   # ou:  export XDG_RUNTIME_DIR=/run/user/$(id -u)
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n-desafio-final
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Permite login/uso via http://localhost (sem TLS). NÃO usar assim em produção.
+      - N8N_SECURE_COOKIE=false
+      - N8N_RUNNERS_ENABLED=true
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - TZ=America/Sao_Paulo
+      # URL base usada para montar a Production URL do webhook:
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:
